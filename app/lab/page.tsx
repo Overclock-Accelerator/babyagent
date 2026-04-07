@@ -7,7 +7,7 @@ import Editor from '@/components/Editor'
 import Chat from '@/components/Chat'
 import JourneyPanel from '@/components/JourneyPanel'
 import SettingsDialog from '@/components/SettingsDialog'
-import { LogOut } from 'lucide-react'
+import { LogOut, FolderTree, FileCode2 } from 'lucide-react'
 import { loadVFS, saveVFS } from '@/lib/vfs'
 import { SEED_FILES, FIRST_GREETING } from '@/lib/seed'
 
@@ -15,6 +15,8 @@ export default function LabPage() {
   const router = useRouter()
   const [authed, setAuthed] = useState(false)
   const [selected, setSelected] = useState<string | null>('CLAUDE.md')
+  const [treeOpen, setTreeOpen] = useState(true)
+  const [editorOpen, setEditorOpen] = useState(true)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -52,6 +54,32 @@ export default function LabPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTreeOpen(!treeOpen)}
+              title={treeOpen ? 'Hide file tree' : 'Show file tree'}
+              aria-pressed={treeOpen}
+              className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-2 px-3 py-2 transition-all ${
+                treeOpen
+                  ? 'bg-swiss-ink text-white border-swiss-ink'
+                  : 'bg-white text-swiss-ink border-swiss-ink hover:bg-swiss-beige/40'
+              }`}
+            >
+              <FolderTree className="w-3.5 h-3.5" />
+              Files
+            </button>
+            <button
+              onClick={() => setEditorOpen(!editorOpen)}
+              title={editorOpen ? 'Hide editor' : 'Show editor'}
+              aria-pressed={editorOpen}
+              className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-2 px-3 py-2 transition-all ${
+                editorOpen
+                  ? 'bg-swiss-ink text-white border-swiss-ink'
+                  : 'bg-white text-swiss-ink border-swiss-ink hover:bg-swiss-beige/40'
+              }`}
+            >
+              <FileCode2 className="w-3.5 h-3.5" />
+              Editor
+            </button>
             <SettingsDialog />
             <button
               onClick={handleLogout}
@@ -65,15 +93,21 @@ export default function LabPage() {
         </div>
       </header>
 
-      {/* Three panes */}
-      <div className="flex-1 grid grid-cols-12 min-h-0">
-        <div className="col-span-3 min-h-0 flex flex-col">
-          <FileTree selected={selected} onSelect={setSelected} />
-        </div>
-        <div className="col-span-5 min-h-0 flex flex-col">
-          <Editor path={selected} />
-        </div>
-        <div className="col-span-4 min-h-0 grid grid-rows-[3fr_2fr]">
+      {/* Panes — collapsible */}
+      <div className="flex-1 flex min-h-0">
+        {treeOpen && (
+          <div className="basis-[260px] shrink-0 min-h-0 flex flex-col">
+            <FileTree selected={selected} onSelect={setSelected} />
+          </div>
+        )}
+        {editorOpen && (
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+            <Editor path={selected} />
+          </div>
+        )}
+        <div className={`min-h-0 grid grid-rows-[3fr_2fr] shrink-0 ${
+          !treeOpen && !editorOpen ? 'flex-1' : 'basis-[440px]'
+        }`}>
           <div className="min-h-0 flex flex-col">
             <Chat greeting={FIRST_GREETING} />
           </div>
