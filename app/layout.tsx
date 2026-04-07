@@ -17,6 +17,17 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "BabyAgent — Raise your own AI agent",
   description: "A browser-based agent-building emulator. Built for Overclock workshops.",
+  openGraph: {
+    title: "BabyAgent — Raise your own AI agent",
+    description: "A browser-based agent-building emulator. Built for Overclock workshops.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BabyAgent — Raise your own AI agent",
+    description: "A browser-based agent-building emulator. Built for Overclock workshops.",
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function RootLayout({
