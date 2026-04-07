@@ -7,9 +7,10 @@ import { buildTree, loadVFS, resetVFS, type TreeNode } from '@/lib/vfs'
 interface Props {
   selected: string | null
   onSelect: (path: string) => void
+  onOpen?: (path: string) => void
 }
 
-export default function FileTree({ selected, onSelect }: Props) {
+export default function FileTree({ selected, onSelect, onOpen }: Props) {
   const [tree, setTree] = useState<TreeNode>(() => buildTree({}))
   const [openDirs, setOpenDirs] = useState<Set<string>>(new Set(['', 'skills']))
 
@@ -62,6 +63,7 @@ export default function FileTree({ selected, onSelect }: Props) {
             toggleDir={toggleDir}
             selected={selected}
             onSelect={onSelect}
+            onOpen={onOpen}
           />
         )}
       </div>
@@ -76,6 +78,7 @@ function TreeNodeView({
   toggleDir,
   selected,
   onSelect,
+  onOpen,
 }: {
   nodes: TreeNode[]
   depth: number
@@ -83,6 +86,7 @@ function TreeNodeView({
   toggleDir: (p: string) => void
   selected: string | null
   onSelect: (p: string) => void
+  onOpen?: (p: string) => void
 }) {
   return (
     <ul className="space-y-0.5">
@@ -108,6 +112,7 @@ function TreeNodeView({
                   toggleDir={toggleDir}
                   selected={selected}
                   onSelect={onSelect}
+                  onOpen={onOpen}
                 />
               )}
             </li>
@@ -118,10 +123,12 @@ function TreeNodeView({
           <li key={node.path}>
             <button
               onClick={() => onSelect(node.path)}
+              onDoubleClick={() => onOpen?.(node.path)}
               className={`w-full text-left flex items-center gap-1.5 py-1 px-1 rounded-sm ${
                 isSelected ? 'bg-swiss-orange/15 border-l-2 border-swiss-orange' : 'hover:bg-swiss-beige/40 border-l-2 border-transparent'
               }`}
               style={{ paddingLeft: depth * 12 + 18 }}
+              title="Double-click to open in editor"
             >
               <FileText className="w-3.5 h-3.5 text-swiss-blue shrink-0" />
               <span className={`truncate ${isSelected ? 'text-swiss-ink font-bold' : 'text-neutral-700'}`}>{node.name}</span>

@@ -1,18 +1,35 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Check, Lock, Sparkles, Plus } from 'lucide-react'
+import { Check, Lock, Sparkles, Plus, X } from 'lucide-react'
 import { JOURNEY, currentStep, progress } from '@/lib/journey'
 import { ALL_SKILLS } from '@/lib/skills'
 import { loadVFS, writeFile } from '@/lib/vfs'
 
-export default function JourneyPanel() {
+interface Props {
+  open: boolean
+  onClose: () => void
+}
+
+export default function JourneyDialog({ open, onClose }: Props) {
   const [, setTick] = useState(0)
   useEffect(() => {
     const refresh = () => setTick(t => t + 1)
     window.addEventListener('babyagent-vfs-changed', refresh)
     return () => window.removeEventListener('babyagent-vfs-changed', refresh)
   }, [])
+
+  // Close on ESC
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  if (!open) return null
 
   const vfs = loadVFS()
   const cur = currentStep(vfs)
@@ -26,59 +43,69 @@ export default function JourneyPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-white border-2 border-swiss-ink m-2 sm:m-3 shadow-[6px_6px_0_0_rgba(12,12,12,0.12)]">
-      <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
-        <div className="w-2 bg-swiss-sage shrink-0" aria-hidden />
-        <div className="flex flex-1 items-center justify-between px-4 py-3 min-w-0">
-          <div>
-            <p className="label-poster text-swiss-sage">{allDone ? 'Sandbox mode' : 'Journey'}</p>
-            <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink">
-              {allDone ? 'Free play' : `Step ${done + 1} of ${total}`}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="flex gap-1">
-              {JOURNEY.map(s => (
-                <span
-                  key={s.id}
-                  className={`w-2.5 h-2.5 border border-swiss-ink ${s.isComplete(vfs) ? 'bg-swiss-orange' : 'bg-white'}`}
-                />
-              ))}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white border-2 border-swiss-ink shadow-[8px_8px_0_0_rgba(12,12,12,0.25)] w-full max-w-md max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
+          <div className="w-2 bg-swiss-sage shrink-0" aria-hidden />
+          <div className="flex flex-1 items-center justify-between px-4 py-3 min-w-0">
+            <div>
+              <p className="label-poster text-swiss-sage">{allDone ? 'Sandbox mode' : 'Journey'}</p>
+              <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink">
+                {allDone ? 'Free play' : `Step ${done + 1} of ${total}`}
+              </p>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mt-1">{done}/{total}</p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="flex gap-1">
+                  {JOURNEY.map(s => (
+                    <span
+                      key={s.id}
+                      className={`w-2.5 h-2.5 border border-swiss-ink ${s.isComplete(vfs) ? 'bg-swiss-orange' : 'bg-white'}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mt-1">{done}/{total}</p>
+              </div>
+              <button onClick={onClose} className="p-1 hover:bg-swiss-beige/40">
+                <X className="w-4 h-4 text-neutral-600" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 scrollbar-thin space-y-3">
-        {!allDone && cur && <CurrentStepCard step={cur} onInstall={installSkill} />}
-        {allDone && <SandboxView onInstall={installSkill} />}
+        <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 scrollbar-thin space-y-3">
+          {!allDone && cur && <CurrentStepCard step={cur} onInstall={installSkill} />}
+          {allDone && <SandboxView onInstall={installSkill} />}
 
-        <div className="pt-2">
-          <p className="label-poster text-swiss-sage mb-2">All steps</p>
-          <ol className="space-y-1.5">
-            {JOURNEY.map((s) => {
-              const isDone = s.isComplete(vfs)
-              const isCurrent = !isDone && cur?.id === s.id
-              return (
-                <li
-                  key={s.id}
-                  className={`flex items-start gap-2 text-xs px-2 py-1.5 border-l-2 ${
-                    isDone ? 'border-swiss-orange bg-swiss-orange/5' : isCurrent ? 'border-swiss-blue bg-sky-50' : 'border-neutral-200'
-                  }`}
-                >
-                  <span className="shrink-0 w-4 h-4 flex items-center justify-center mt-0.5">
-                    {isDone ? <Check className="w-3.5 h-3.5 text-swiss-orange" /> : isCurrent ? <Sparkles className="w-3.5 h-3.5 text-swiss-blue" /> : <Lock className="w-3 h-3 text-neutral-300" />}
-                  </span>
-                  <div className="min-w-0">
-                    <p className={`font-bold uppercase tracking-wider ${isDone ? 'text-swiss-ink line-through opacity-60' : isCurrent ? 'text-swiss-ink' : 'text-neutral-400'}`}>
-                      {s.id}. {s.title}
-                    </p>
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
+          <div className="pt-2">
+            <p className="label-poster text-swiss-sage mb-2">All steps</p>
+            <ol className="space-y-1.5">
+              {JOURNEY.map((s) => {
+                const isDone = s.isComplete(vfs)
+                const isCurrent = !isDone && cur?.id === s.id
+                return (
+                  <li
+                    key={s.id}
+                    className={`flex items-start gap-2 text-xs px-2 py-1.5 border-l-2 ${
+                      isDone ? 'border-swiss-orange bg-swiss-orange/5' : isCurrent ? 'border-swiss-blue bg-sky-50' : 'border-neutral-200'
+                    }`}
+                  >
+                    <span className="shrink-0 w-4 h-4 flex items-center justify-center mt-0.5">
+                      {isDone ? <Check className="w-3.5 h-3.5 text-swiss-orange" /> : isCurrent ? <Sparkles className="w-3.5 h-3.5 text-swiss-blue" /> : <Lock className="w-3 h-3 text-neutral-300" />}
+                    </span>
+                    <div className="min-w-0">
+                      <p className={`font-bold uppercase tracking-wider ${isDone ? 'text-swiss-ink line-through opacity-60' : isCurrent ? 'text-swiss-ink' : 'text-neutral-400'}`}>
+                        {s.id}. {s.title}
+                      </p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
         </div>
       </div>
     </div>
@@ -102,7 +129,7 @@ function CurrentStepCard({ step, onInstall }: { step: ReturnType<typeof currentS
       )}
       {step.kind === 'file' && (
         <p className="mt-3 text-[11px] italic text-neutral-500">
-          Just chat with BabyAgent below — when you answer, it will write <span className="font-mono font-bold">{step.target}</span> for you. Or open the file directly in the editor.
+          Just chat with BabyAgent — when you answer, it will write <span className="font-mono font-bold">{step.target}</span> for you. Or open the file directly in the editor.
         </p>
       )}
     </div>
