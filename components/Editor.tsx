@@ -3,7 +3,15 @@
 import { useEffect, useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
+import { javascript } from '@codemirror/lang-javascript'
 import { EditorView } from '@codemirror/view'
+
+function languageForPath(path: string | null) {
+  if (!path) return [markdown()]
+  if (path.endsWith('.ts') || path.endsWith('.tsx')) return [javascript({ typescript: true, jsx: path.endsWith('.tsx') })]
+  if (path.endsWith('.js') || path.endsWith('.jsx')) return [javascript({ jsx: path.endsWith('.jsx') })]
+  return [markdown()]
+}
 import { loadVFS, writeFile } from '@/lib/vfs'
 import { Save, ChevronsLeft } from 'lucide-react'
 
@@ -107,7 +115,7 @@ export default function Editor({ path, onCollapse }: Props) {
         <CodeMirror
           value={contents}
           height="100%"
-          extensions={[markdown(), EditorView.lineWrapping]}
+          extensions={[...languageForPath(path), EditorView.lineWrapping]}
           onChange={(v) => { setContents(v); setDirty(true) }}
           basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: true }}
           theme="light"
