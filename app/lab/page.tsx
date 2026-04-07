@@ -163,13 +163,13 @@ function ModeBadge({ mode, proxyEnabled }: { mode: 'local' | 'hosted' | 'unknown
           ? 'Local mode — your laptop is the server. Custom skills can use the proxy to talk to APIs that block browser requests (Notion, Resend, etc).'
           : 'Hosted mode — running on Vercel. Browser-only skills work; proxy-required skills (Notion, real email) need you to clone the repo and run locally.'
       }
-      className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider border-2 px-2 py-1.5 ${
+      className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-2 px-3 py-2 ${
         isLocal
           ? 'bg-green-50 text-green-800 border-green-700'
           : 'bg-neutral-100 text-neutral-600 border-neutral-400'
       }`}
     >
-      {isLocal ? <Server className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}
+      {isLocal ? <Server className="w-3.5 h-3.5" /> : <Cloud className="w-3.5 h-3.5" />}
       {isLocal ? 'Local · Proxy On' : 'Hosted'}
     </div>
   )
