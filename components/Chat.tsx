@@ -140,7 +140,7 @@ export default function Chat() {
               ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Talk to BabyAgent…"
+            placeholder={`Talk to ${agentName}…`}
             rows={1}
             disabled={loading}
             className="flex-1 bg-transparent text-sm resize-none focus:outline-none disabled:opacity-50 overflow-hidden text-swiss-ink placeholder:text-neutral-400 leading-relaxed min-h-[24px] max-h-[120px]"
