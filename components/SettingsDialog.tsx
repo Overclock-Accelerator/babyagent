@@ -88,7 +88,7 @@ export default function SettingsDialog() {
       <button
         onClick={() => setOpen(true)}
         title="Settings"
-        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-600 hover:text-swiss-ink border-2 border-transparent hover:border-swiss-ink px-3 py-2 transition-colors"
+        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-swiss-ink bg-white hover:bg-swiss-beige/40 border-2 border-swiss-ink px-3 py-2 transition-colors"
       >
         <SettingsIcon className="w-3.5 h-3.5" />
         Settings
