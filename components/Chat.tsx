@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Wrench } from 'lucide-react'
 import { runTurn, type ChatMessage } from '@/lib/anthropic'
+import { useAgentName } from '@/lib/agentName'
 
 const STORAGE = 'babyagent_chat_v1'
 
@@ -30,6 +31,7 @@ export default function Chat({ greeting }: Props) {
   const [progress, setProgress] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  const agentName = useAgentName()
 
   useEffect(() => {
     const h = loadHistory()
@@ -97,9 +99,9 @@ export default function Chat({ greeting }: Props) {
       <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
         <div className="w-2 bg-swiss-orange shrink-0" aria-hidden />
         <div className="flex flex-1 items-center justify-between px-4 py-3 min-w-0">
-          <div>
+          <div className="min-w-0">
             <p className="label-poster text-swiss-sage">Live chat</p>
-            <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink">Talk to BabyAgent</p>
+            <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink truncate">Talk to {agentName}</p>
           </div>
           <button
             onClick={handleClear}
@@ -112,11 +114,11 @@ export default function Chat({ greeting }: Props) {
 
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-5 min-h-0 scrollbar-thin">
         {messages.map((m) => (
-          <Bubble key={m.id} msg={m} />
+          <Bubble key={m.id} msg={m} agentName={agentName} />
         ))}
         {loading && (
           <div className="flex flex-col items-start gap-2">
-            <p className="label-poster text-neutral-500 px-1">BabyAgent</p>
+            <p className="label-poster text-neutral-500 px-1">{agentName}</p>
             <div className="border-2 border-swiss-ink bg-swiss-beige/40 px-4 py-3 flex items-center gap-2">
               {[0, 150, 300].map((d) => (
                 <span key={d} className="w-2 h-2 rounded-full bg-swiss-ink ba-bounce" style={{ animationDelay: `${d}ms` }} />
@@ -161,11 +163,11 @@ export default function Chat({ greeting }: Props) {
   )
 }
 
-function Bubble({ msg }: { msg: ChatMessage }) {
+function Bubble({ msg, agentName }: { msg: ChatMessage; agentName: string }) {
   const isUser = msg.role === 'user'
   return (
     <div className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
-      <p className="label-poster text-neutral-500 px-1">{isUser ? 'You' : 'BabyAgent'}</p>
+      <p className="label-poster text-neutral-500 px-1">{isUser ? 'You' : agentName}</p>
       <div
         className={`max-w-[88%] px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed border-2 ${
           isUser

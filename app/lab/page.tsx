@@ -9,6 +9,7 @@ import JourneyDialog from '@/components/JourneyPanel'
 import SettingsDialog from '@/components/SettingsDialog'
 import { LogOut, FolderTree, FileCode2, Compass, RotateCcw } from 'lucide-react'
 import { loadVFS, saveVFS, resetVFS } from '@/lib/vfs'
+import { useAgentName, DEFAULT_NAME } from '@/lib/agentName'
 import { SEED_FILES, FIRST_GREETING } from '@/lib/seed'
 
 export default function LabPage() {
@@ -18,6 +19,7 @@ export default function LabPage() {
   const [treeOpen, setTreeOpen] = useState(true)
   const [editorOpen, setEditorOpen] = useState(true)
   const [journeyOpen, setJourneyOpen] = useState(false)
+  const agentName = useAgentName()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -64,9 +66,14 @@ export default function LabPage() {
             <div className="w-9 h-9 border-2 border-swiss-ink bg-swiss-orange/15 flex items-center justify-center">
               <span className="text-xl">🐣</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="label-poster text-swiss-sage leading-none">Overclock Workshop</p>
-              <h1 className="text-lg font-black uppercase tracking-wide text-swiss-ink leading-none mt-0.5">BabyAgent</h1>
+              <h1 className="text-lg font-black uppercase tracking-wide text-swiss-ink leading-none mt-0.5 truncate">
+                {agentName}
+                {agentName !== DEFAULT_NAME && (
+                  <span className="ml-2 text-[10px] font-bold text-neutral-400 tracking-wider">via BabyAgent</span>
+                )}
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-2">

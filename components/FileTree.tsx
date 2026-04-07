@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from 'lucide-react'
 import { buildTree, loadVFS, type TreeNode } from '@/lib/vfs'
+import { useAgentName } from '@/lib/agentName'
 
 interface Props {
   selected: string | null
@@ -13,6 +14,7 @@ interface Props {
 export default function FileTree({ selected, onSelect, onOpen }: Props) {
   const [tree, setTree] = useState<TreeNode>(() => buildTree({}))
   const [openDirs, setOpenDirs] = useState<Set<string>>(new Set(['', 'skills']))
+  const agentName = useAgentName()
 
   useEffect(() => {
     function refresh() { setTree(buildTree(loadVFS())) }
@@ -32,9 +34,9 @@ export default function FileTree({ selected, onSelect, onOpen }: Props) {
       <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
         <div className="w-2 bg-swiss-orange shrink-0" aria-hidden />
         <div className="flex flex-1 items-center px-4 py-3 min-w-0">
-          <div>
+          <div className="min-w-0">
             <p className="label-poster text-swiss-sage">Filesystem</p>
-            <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink">BabyAgent&rsquo;s Soul</p>
+            <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink truncate">{agentName}&rsquo;s Soul</p>
           </div>
         </div>
       </div>
