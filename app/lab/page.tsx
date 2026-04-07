@@ -108,9 +108,27 @@ export default function LabPage() {
         </div>
       </header>
 
-      {/* Panes — each panel collapses to a vertical rail in place. */}
+      {/* Panes — collapsed rails always pinned to the far left (VS Code activity-bar style),
+          then expanded panels, then chat fills the rest. */}
       <div className="flex-1 flex min-h-0">
-        {treeOpen ? (
+        {!treeOpen && (
+          <CollapsedRail
+            label="File System"
+            accent="orange"
+            icon={<FolderTree className="w-4 h-4" />}
+            onExpand={() => setTreeOpen(true)}
+          />
+        )}
+        {!editorOpen && (
+          <CollapsedRail
+            label="Editor"
+            accent="blue"
+            icon={<FileCode2 className="w-4 h-4" />}
+            onExpand={() => setEditorOpen(true)}
+          />
+        )}
+
+        {treeOpen && (
           <div className="basis-[260px] shrink-0 min-h-0 flex flex-col">
             <FileTree
               selected={selected}
@@ -119,26 +137,12 @@ export default function LabPage() {
               onCollapse={() => setTreeOpen(false)}
             />
           </div>
-        ) : (
-          <CollapsedRail
-            label="File System"
-            accent="orange"
-            icon={<FolderTree className="w-4 h-4" />}
-            onExpand={() => setTreeOpen(true)}
-          />
         )}
 
-        {editorOpen ? (
+        {editorOpen && (
           <div className="basis-[520px] flex-1 min-w-0 min-h-0 flex flex-col">
             <Editor path={selected} onCollapse={() => setEditorOpen(false)} />
           </div>
-        ) : (
-          <CollapsedRail
-            label="Editor"
-            accent="blue"
-            icon={<FileCode2 className="w-4 h-4" />}
-            onExpand={() => setEditorOpen(true)}
-          />
         )}
 
         <div className={`min-h-0 flex flex-col min-w-0 ${
