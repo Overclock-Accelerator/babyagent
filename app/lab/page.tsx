@@ -52,9 +52,11 @@ export default function LabPage() {
   }
 
   function handleRestart() {
-    if (window.confirm('Restart BabyAgent from a blank slate? This wipes all files and chat history.')) {
+    if (window.confirm('Restart BabyAgent from a blank slate? This wipes all files, chat history, custom skills, and secrets.')) {
       resetVFS()
       localStorage.removeItem('babyagent_chat_v1')
+      localStorage.removeItem('babyagent_custom_skills_v1')
+      localStorage.removeItem('babyagent_secrets_v1')
       window.location.reload()
     }
   }
