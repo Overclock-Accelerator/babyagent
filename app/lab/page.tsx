@@ -7,6 +7,7 @@ import Editor from '@/components/Editor'
 import Chat from '@/components/Chat'
 import JourneyDialog from '@/components/JourneyPanel'
 import SettingsDialog from '@/components/SettingsDialog'
+import CollapsedRail from '@/components/CollapsedRail'
 import { LogOut, FolderTree, FileCode2, Compass, RotateCcw, Server, Cloud } from 'lucide-react'
 import { loadVFS, saveVFS, resetVFS } from '@/lib/vfs'
 import { useAgentName, DEFAULT_NAME } from '@/lib/agentName'
@@ -81,18 +82,6 @@ export default function LabPage() {
           <div className="flex items-center gap-2">
             <ModeBadge mode={mode} proxyEnabled={proxyEnabled} />
             <NavToggle
-              active={treeOpen}
-              onClick={() => setTreeOpen(!treeOpen)}
-              icon={<FolderTree className="w-3.5 h-3.5" />}
-              label="Files"
-            />
-            <NavToggle
-              active={editorOpen}
-              onClick={() => setEditorOpen(!editorOpen)}
-              icon={<FileCode2 className="w-3.5 h-3.5" />}
-              label="Editor"
-            />
-            <NavToggle
               active={journeyOpen}
               onClick={() => setJourneyOpen(!journeyOpen)}
               icon={<Compass className="w-3.5 h-3.5" />}
@@ -119,18 +108,39 @@ export default function LabPage() {
         </div>
       </header>
 
-      {/* Panes — collapsible. Chat always fills remaining width. */}
+      {/* Panes — each panel collapses to a vertical rail in place. */}
       <div className="flex-1 flex min-h-0">
-        {treeOpen && (
+        {treeOpen ? (
           <div className="basis-[260px] shrink-0 min-h-0 flex flex-col">
-            <FileTree selected={selected} onSelect={setSelected} onOpen={handleOpenFile} />
+            <FileTree
+              selected={selected}
+              onSelect={setSelected}
+              onOpen={handleOpenFile}
+              onCollapse={() => setTreeOpen(false)}
+            />
           </div>
+        ) : (
+          <CollapsedRail
+            label="File System"
+            accent="orange"
+            icon={<FolderTree className="w-4 h-4" />}
+            onExpand={() => setTreeOpen(true)}
+          />
         )}
-        {editorOpen && (
+
+        {editorOpen ? (
           <div className="basis-[520px] flex-1 min-w-0 min-h-0 flex flex-col">
-            <Editor path={selected} />
+            <Editor path={selected} onCollapse={() => setEditorOpen(false)} />
           </div>
+        ) : (
+          <CollapsedRail
+            label="Editor"
+            accent="blue"
+            icon={<FileCode2 className="w-4 h-4" />}
+            onExpand={() => setEditorOpen(true)}
+          />
         )}
+
         <div className={`min-h-0 flex flex-col min-w-0 ${
           editorOpen ? 'basis-[460px] shrink-0' : 'flex-1'
         }`}>
