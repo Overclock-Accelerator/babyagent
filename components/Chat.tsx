@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Wrench } from 'lucide-react'
 import { runTurn, type ChatMessage } from '@/lib/anthropic'
-import { useAgentName } from '@/lib/agentName'
+import { useAgentName, getAgentName } from '@/lib/agentName'
+import { loadVFS } from '@/lib/vfs'
+import { buildGreeting } from '@/lib/seed'
 
 const STORAGE = 'babyagent_chat_v1'
 
@@ -20,11 +22,7 @@ function saveHistory(h: ChatMessage[]) {
   localStorage.setItem(STORAGE, JSON.stringify(h))
 }
 
-interface Props {
-  greeting: string
-}
-
-export default function Chat({ greeting }: Props) {
+export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,13 +34,13 @@ export default function Chat({ greeting }: Props) {
   useEffect(() => {
     const h = loadHistory()
     if (h.length === 0) {
-      const seeded: ChatMessage = { id: 'seed', role: 'assistant', content: greeting }
+      const seeded: ChatMessage = { id: 'seed', role: 'assistant', content: buildGreeting(loadVFS(), getAgentName()) }
       setMessages([seeded])
       saveHistory([seeded])
     } else {
       setMessages(h)
     }
-  }, [greeting])
+  }, [])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -88,7 +86,7 @@ export default function Chat({ greeting }: Props) {
 
   function handleClear() {
     if (window.confirm('Clear the conversation? File state stays. This only wipes chat history.')) {
-      const seeded: ChatMessage = { id: 'seed', role: 'assistant', content: greeting }
+      const seeded: ChatMessage = { id: 'seed', role: 'assistant', content: buildGreeting(loadVFS(), getAgentName()) }
       setMessages([seeded])
       saveHistory([seeded])
     }

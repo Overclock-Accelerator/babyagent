@@ -93,13 +93,39 @@ A "skill" is not a special kind of code. It's a **JSON document plus a generic i
 These files are read-only documentation. Editing them in the BabyAgent editor doesn't change BabyAgent's actual behavior — to change the real source you'd have to fork the repo and edit the files in \`lib/skills/\`.
 `
 
-export const FIRST_GREETING = `Hi. I'm BabyAgent. 🐣
+export const BLANK_SLATE_GREETING = `Hi. I'm BabyAgent. 🐣
 
 I don't know anything yet — not even who you are. I have no mission, no goals, no memory, and no installed skills. I literally cannot do much for you in this state.
 
 But here's the cool part: **I can grow.** Every time you tell me something about you or about what I should do, I'll write it into a markdown file on the left. Those files become *my soul*. The more you give me, the more capable I become.
 
 Want to help me grow up? Let's start with **you**. What's your name, and what do you do?`
+
+// Build a context-aware greeting based on what files already exist in the VFS.
+// Used both on first load and after the user clears the chat — so a returning
+// user doesn't get re-introduced as a blank slate when they clearly aren't.
+export function buildGreeting(vfs: Record<string, string>, agentName: string): string {
+  const hasUser = !!vfs['USER.md']
+  const hasMission = !!vfs['MISSION.md']
+  const hasGoals = !!vfs['GOALS.md']
+  const hasMemory = !!vfs['MEMORY.md']
+  const installedSkills = Object.keys(vfs).filter(p => p.startsWith('skills/') && p.endsWith('.md'))
+
+  if (!hasUser && !hasMission) return BLANK_SLATE_GREETING
+
+  const loaded: string[] = []
+  if (hasUser) loaded.push('who you are')
+  if (hasMission) loaded.push('my mission')
+  if (hasGoals) loaded.push('your goals')
+  if (hasMemory) loaded.push('what to remember')
+  const loadedText = loaded.length ? loaded.join(', ') : 'some context'
+
+  const skillsText = installedSkills.length > 0
+    ? ` I have ${installedSkills.length} skill${installedSkills.length === 1 ? '' : 's'} installed (see the skills/ folder).`
+    : ''
+
+  return `Hi again. I'm ${agentName} — your context is loaded (${loadedText}).${skillsText}\n\nWhat can I help you with?`
+}
 
 export const SEED_FILES: Record<string, string> = {
   'CLAUDE.md': SEED_CLAUDE_MD,

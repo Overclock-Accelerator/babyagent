@@ -12,7 +12,7 @@ import { LogOut, FolderTree, FileCode2, Compass, RotateCcw, Server, Cloud } from
 import { loadVFS, saveVFS, resetVFS } from '@/lib/vfs'
 import { useAgentName, DEFAULT_NAME } from '@/lib/agentName'
 import { useMode } from '@/lib/mode'
-import { SEED_FILES, FIRST_GREETING } from '@/lib/seed'
+import { SEED_FILES } from '@/lib/seed'
 
 export default function LabPage() {
   const router = useRouter()
@@ -151,7 +151,7 @@ export default function LabPage() {
         <div className={`min-h-0 flex flex-col min-w-0 ${
           editorOpen ? 'basis-[460px] shrink-0' : 'flex-1'
         }`}>
-          <Chat greeting={FIRST_GREETING} />
+          <Chat />
         </div>
       </div>
 
