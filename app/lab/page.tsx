@@ -1,22 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import FileTree from '@/components/FileTree'
 import Editor from '@/components/Editor'
 import Chat from '@/components/Chat'
 import JourneyDialog from '@/components/JourneyPanel'
 import SettingsDialog from '@/components/SettingsDialog'
 import CollapsedRail from '@/components/CollapsedRail'
-import { LogOut, FolderTree, FileCode2, Compass, RotateCcw, Server, Cloud } from 'lucide-react'
+import { FolderTree, FileCode2, Compass, RotateCcw, Server, Cloud } from 'lucide-react'
 import { loadVFS, saveVFS, resetVFS } from '@/lib/vfs'
 import { useAgentName, DEFAULT_NAME } from '@/lib/agentName'
 import { useMode } from '@/lib/mode'
 import { SEED_FILES } from '@/lib/seed'
 
 export default function LabPage() {
-  const router = useRouter()
-  const [authed, setAuthed] = useState(false)
   const [selected, setSelected] = useState<string | null>('CLAUDE.md')
   const [treeOpen, setTreeOpen] = useState(true)
   const [editorOpen, setEditorOpen] = useState(true)
@@ -27,10 +24,6 @@ export default function LabPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (localStorage.getItem('babyagent_auth') !== 'true') {
-      router.push('/')
-      return
-    }
     // Seed VFS on first visit
     const vfs = loadVFS()
     if (Object.keys(vfs).length === 0) {
@@ -38,13 +31,7 @@ export default function LabPage() {
       // Auto-open Journey on the very first visit so users discover it
       setJourneyOpen(true)
     }
-    setAuthed(true)
-  }, [router])
-
-  function handleLogout() {
-    localStorage.removeItem('babyagent_auth')
-    router.push('/')
-  }
+  }, [])
 
   function handleOpenFile(path: string) {
     setSelected(path)
@@ -60,8 +47,6 @@ export default function LabPage() {
       window.location.reload()
     }
   }
-
-  if (!authed) return null
 
   return (
     <div className="h-screen flex flex-col bg-[#f4f3ef] overflow-hidden">
@@ -98,14 +83,6 @@ export default function LabPage() {
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Restart
-            </button>
-            <button
-              onClick={handleLogout}
-              title="Sign out"
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-600 hover:text-swiss-ink border-2 border-transparent hover:border-swiss-ink px-3 py-2 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign out
             </button>
           </div>
         </div>
@@ -220,7 +197,7 @@ cd babyagent
 bun install
 bun dev`}</pre>
                 <p className="text-[11px] text-neutral-600 mt-2">
-                  Open <code>http://localhost:3000</code>, log in with the same workshop password, and the badge will turn green.
+                  Open <code>http://localhost:3000</code> and the badge will turn green.
                 </p>
               </div>
             </>
