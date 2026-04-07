@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Settings as SettingsIcon, Eye, EyeOff, Trash2, Plus } from 'lucide-react'
+import { X, Settings as SettingsIcon, Eye, EyeOff, Trash2, Plus, Search } from 'lucide-react'
 import {
   getAnthropicKey, setAnthropicKey,
   getPerplexityKey, setPerplexityKey,
@@ -9,6 +9,119 @@ import {
 } from '@/lib/anthropic'
 import { loadSecrets, setSecret as saveSecret, deleteSecret } from '@/lib/secrets'
 import { loadCustomSkills, deleteCustomSkill, type CustomSkillSpec } from '@/lib/customSkills'
+
+function SkillInspectDialog({ spec, onClose }: { spec: CustomSkillSpec; onClose: () => void }) {
+  const bodyPretty = spec.request.body === undefined
+    ? '(none)'
+    : typeof spec.request.body === 'string'
+      ? spec.request.body
+      : JSON.stringify(spec.request.body, null, 2)
+  return (
+    <div className="fixed inset-[0] z-[60] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="bg-white border-2 border-swiss-ink shadow-[8px_8px_0_0_rgba(12,12,12,0.25)] w-full max-w-2xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
+          <div className="w-2 bg-swiss-blue" aria-hidden />
+          <div className="flex flex-1 items-center justify-between px-4 py-3">
+            <div className="min-w-0">
+              <p className="label-poster text-swiss-sage">Custom skill spec</p>
+              <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink truncate">{spec.name}</p>
+              <code className="block text-[10px] text-swiss-blue mt-0.5">{spec.id}</code>
+            </div>
+            <button onClick={onClose} className="p-1 hover:bg-swiss-beige/40 shrink-0">
+              <X className="w-4 h-4 text-neutral-600" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-thin text-xs">
+          <Section label="Description">
+            <p className="text-sm text-swiss-ink leading-relaxed">{spec.description}</p>
+          </Section>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Section label="Proxy">
+              <p className={`text-sm font-bold ${spec.proxy ? 'text-green-800' : 'text-neutral-500'}`}>
+                {spec.proxy ? 'Required (local mode only)' : 'Not required (browser-direct)'}
+              </p>
+            </Section>
+            <Section label="Created">
+              <p className="text-sm text-neutral-600">{new Date(spec.createdAt).toLocaleString()}</p>
+            </Section>
+          </div>
+
+          <Section label="Inputs">
+            {spec.inputs.length === 0 ? (
+              <p className="text-xs italic text-neutral-400">(none)</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {spec.inputs.map((i) => (
+                  <li key={i.name} className="border-l-2 border-swiss-orange pl-2 py-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <code className="text-[11px] font-bold text-swiss-ink">{i.name}</code>
+                      <span className="text-[10px] text-swiss-blue uppercase tracking-wider">{i.type}</span>
+                      {i.required && <span className="text-[9px] text-swiss-crimson uppercase tracking-wider font-bold">required</span>}
+                    </div>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">{i.description}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+
+          <Section label="Request — method & URL">
+            <div className="font-mono text-[11px] bg-swiss-beige/30 border-2 border-neutral-300 p-2 break-all">
+              <span className="font-bold text-swiss-orange">{spec.request.method}</span>{' '}
+              <span className="text-swiss-ink">{spec.request.url}</span>
+            </div>
+          </Section>
+
+          <Section label="Request — headers">
+            {!spec.request.headers || Object.keys(spec.request.headers).length === 0 ? (
+              <p className="text-xs italic text-neutral-400">(none)</p>
+            ) : (
+              <pre className="font-mono text-[11px] bg-swiss-beige/30 border-2 border-neutral-300 p-2 whitespace-pre-wrap break-all">
+                {JSON.stringify(spec.request.headers, null, 2)}
+              </pre>
+            )}
+          </Section>
+
+          <Section label="Request — body">
+            <pre className="font-mono text-[11px] bg-swiss-beige/30 border-2 border-neutral-300 p-2 whitespace-pre-wrap break-all">
+              {bodyPretty}
+            </pre>
+          </Section>
+
+          <div className="border-t-2 border-neutral-200 pt-3">
+            <p className="text-[11px] text-neutral-500 leading-relaxed">
+              💡 Template placeholders like <code className="bg-swiss-beige/40 px-1">{'{{input.NAME}}'}</code> get replaced with the argument BabyAgent passes at call time, and <code className="bg-swiss-beige/40 px-1">{'{{secrets.NAME}}'}</code> with the stored secret value. If a call is failing, check (1) the secrets tab to verify the secret exists, (2) that the input names in the URL/body match the Inputs above, and (3) that CORS isn't blocking — skills targeting enterprise APIs need proxy mode (local only).
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-3 border-t-2 border-swiss-ink bg-swiss-beige/30">
+          <button
+            onClick={onClose}
+            className="text-xs font-bold uppercase tracking-wider bg-swiss-orange hover:bg-[#cf5204] text-white border-2 border-swiss-ink px-3 py-2 shadow-[2px_2px_0_0_rgba(12,12,12,1)]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="label-poster text-swiss-sage mb-1.5">{label}</p>
+      {children}
+    </div>
+  )
+}
 
 const MODELS = [
   { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5 (recommended)' },
@@ -29,6 +142,7 @@ export default function SettingsDialog() {
   const [customs, setCustoms] = useState<CustomSkillSpec[]>([])
   const [newSecKey, setNewSecKey] = useState('')
   const [newSecVal, setNewSecVal] = useState('')
+  const [inspecting, setInspecting] = useState<CustomSkillSpec | null>(null)
 
   function refreshSecrets() {
     setSecretsState(loadSecrets())
@@ -93,6 +207,10 @@ export default function SettingsDialog() {
         <SettingsIcon className="w-3.5 h-3.5" />
         Settings
       </button>
+
+      {inspecting && (
+        <SkillInspectDialog spec={inspecting} onClose={() => setInspecting(null)} />
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -269,19 +387,35 @@ export default function SettingsDialog() {
                       {customs.map((s) => (
                         <li key={s.id} className="border-2 border-swiss-ink p-2.5 bg-white">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold uppercase tracking-wider text-swiss-ink truncate">{s.name}</p>
+                            <button
+                              onClick={() => setInspecting(s)}
+                              className="min-w-0 flex-1 text-left group"
+                              title="Click to inspect full spec"
+                            >
+                              <p className="text-xs font-bold uppercase tracking-wider text-swiss-ink truncate group-hover:text-swiss-orange transition-colors">{s.name}</p>
                               <code className="block text-[10px] text-swiss-blue mt-0.5">{s.id}</code>
                               <p className="text-[11px] text-neutral-600 mt-1 leading-snug">{s.description}</p>
                               <p className="text-[10px] text-neutral-400 mt-1 font-mono">{s.request.method} {s.request.url.length > 50 ? s.request.url.slice(0, 50) + '…' : s.request.url}</p>
-                            </div>
-                            <button
-                              onClick={() => removeCustomSkill(s.id)}
-                              className="text-neutral-400 hover:text-swiss-crimson p-1"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              {s.proxy && (
+                                <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider bg-green-50 text-green-800 border border-green-700 px-1 py-0.5">proxy</span>
+                              )}
                             </button>
+                            <div className="flex flex-col gap-1 shrink-0">
+                              <button
+                                onClick={() => setInspecting(s)}
+                                className="text-neutral-400 hover:text-swiss-blue p-1"
+                                title="Inspect"
+                              >
+                                <Search className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => removeCustomSkill(s.id)}
+                                className="text-neutral-400 hover:text-swiss-crimson p-1"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </li>
                       ))}
