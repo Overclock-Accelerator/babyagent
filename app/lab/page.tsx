@@ -21,6 +21,7 @@ export default function LabPage() {
   const [treeOpen, setTreeOpen] = useState(true)
   const [editorOpen, setEditorOpen] = useState(true)
   const [journeyOpen, setJourneyOpen] = useState(false)
+  const [modeInfoOpen, setModeInfoOpen] = useState(false)
   const agentName = useAgentName()
   const { mode, proxyEnabled } = useMode()
 
@@ -80,7 +81,7 @@ export default function LabPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <ModeBadge mode={mode} proxyEnabled={proxyEnabled} />
+            <ModeBadge mode={mode} onClick={() => setModeInfoOpen(true)} />
             <NavToggle
               active={journeyOpen}
               onClick={() => setJourneyOpen(!journeyOpen)}
@@ -153,29 +154,105 @@ export default function LabPage() {
       </div>
 
       <JourneyDialog open={journeyOpen} onClose={() => setJourneyOpen(false)} />
+      <ModeInfoDialog open={modeInfoOpen} mode={mode} onClose={() => setModeInfoOpen(false)} />
     </div>
   )
 }
 
-function ModeBadge({ mode, proxyEnabled }: { mode: 'local' | 'hosted' | 'unknown'; proxyEnabled: boolean }) {
+function ModeInfoDialog({
+  open, mode, onClose,
+}: { open: boolean; mode: 'local' | 'hosted' | 'unknown'; onClose: () => void }) {
+  if (!open) return null
+  const isLocal = mode === 'local'
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white border-2 border-swiss-ink shadow-[8px_8px_0_0_rgba(12,12,12,0.25)] w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-stretch border-b-2 border-swiss-ink">
+          <div className={`w-2 ${isLocal ? 'bg-green-700' : 'bg-neutral-400'}`} aria-hidden />
+          <div className="flex flex-1 items-center justify-between px-4 py-3">
+            <div>
+              <p className="label-poster text-swiss-sage">Runtime mode</p>
+              <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink">
+                {isLocal ? 'Local · Proxy On' : 'Hosted · Browser Only'}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-1 hover:bg-swiss-beige/40 text-neutral-600">
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="px-5 py-5 space-y-4 text-sm leading-relaxed text-swiss-ink">
+          {isLocal ? (
+            <>
+              <p>
+                You&rsquo;re running BabyAgent <strong>locally on your laptop</strong> via <code className="text-xs bg-swiss-beige/40 px-1.5 py-0.5">bun dev</code>. That means your laptop is the server &mdash; not Vercel, not anyone else.
+              </p>
+              <p>
+                Because you control the server, BabyAgent can use a built-in <strong>proxy route</strong> at <code className="text-xs bg-swiss-beige/40 px-1.5 py-0.5">/api/proxy</code>. When BabyAgent creates a custom skill that targets an API which blocks browser-direct requests &mdash; Notion, Resend, SendGrid, Linear, the Slack Web API, Twilio, most enterprise SaaS &mdash; the request is routed through your local Node process instead of fired straight from your browser. The browser&rsquo;s CORS rules don&rsquo;t apply to server-side fetches, so things just work.
+              </p>
+              <p>
+                <strong>Privacy is the same or better:</strong> your secrets go from your browser, to your laptop&rsquo;s Next.js process, to the target API. They never touch Vercel or any third party.
+              </p>
+              <p className="text-xs text-neutral-500 italic">
+                When BabyAgent builds a new skill, it knows to set <code>proxy: true</code> in the spec for any API that needs it.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                You&rsquo;re running BabyAgent in <strong>hosted mode</strong> &mdash; the deployed Vercel version. The proxy is deliberately disabled here so the privacy story stays honest: <em>your keys never leave your browser.</em>
+              </p>
+              <p>
+                That means BabyAgent can only call APIs that are <strong>browser-friendly</strong> (CORS-allowed): GitHub public, Discord webhooks, ntfy.sh, webhook.site, Tavily, OpenWeather, the Telegram bot API, and so on. These work great for live demos.
+              </p>
+              <p>
+                Skills that need a proxy &mdash; real email (Resend/SendGrid), Notion, Linear, the Slack Web API &mdash; will return a friendly error telling you to clone and run locally.
+              </p>
+              <div className="border-2 border-swiss-ink bg-swiss-beige/30 p-3 mt-3">
+                <p className="label-poster text-swiss-sage mb-1">To unlock proxy mode</p>
+                <pre className="text-[11px] font-mono leading-relaxed text-swiss-ink whitespace-pre-wrap">{`gh repo clone Overclock-Accelerator/babyagent
+cd babyagent
+bun install
+bun dev`}</pre>
+                <p className="text-[11px] text-neutral-600 mt-2">
+                  Open <code>http://localhost:3000</code>, log in with the same workshop password, and the badge will turn green.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-3 border-t-2 border-swiss-ink bg-swiss-beige/30">
+          <button
+            onClick={onClose}
+            className="text-xs font-bold uppercase tracking-wider bg-swiss-orange hover:bg-[#cf5204] text-white border-2 border-swiss-ink px-3 py-2 shadow-[2px_2px_0_0_rgba(12,12,12,1)] hover:shadow-[1px_1px_0_0_rgba(12,12,12,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ModeBadge({ mode, onClick }: { mode: 'local' | 'hosted' | 'unknown'; onClick: () => void }) {
   if (mode === 'unknown') return null
   const isLocal = mode === 'local'
   return (
-    <div
-      title={
+    <button
+      onClick={onClick}
+      title="What does this mean?"
+      className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-2 px-3 py-2 transition-colors ${
         isLocal
-          ? 'Local mode — your laptop is the server. Custom skills can use the proxy to talk to APIs that block browser requests (Notion, Resend, etc).'
-          : 'Hosted mode — running on Vercel. Browser-only skills work; proxy-required skills (Notion, real email) need you to clone the repo and run locally.'
-      }
-      className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-2 px-3 py-2 ${
-        isLocal
-          ? 'bg-green-50 text-green-800 border-green-700'
-          : 'bg-neutral-100 text-neutral-600 border-neutral-400'
+          ? 'bg-green-50 text-green-800 border-green-700 hover:bg-green-100'
+          : 'bg-neutral-100 text-neutral-600 border-neutral-400 hover:bg-neutral-200'
       }`}
     >
       {isLocal ? <Server className="w-3.5 h-3.5" /> : <Cloud className="w-3.5 h-3.5" />}
       {isLocal ? 'Local · Proxy On' : 'Hosted'}
-    </div>
+    </button>
   )
 }
 
