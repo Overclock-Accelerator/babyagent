@@ -35,7 +35,7 @@ You have three built-in tools that let you shape yourself and grow new capabilit
 
    c. Ask what inputs the skill should take from you on later turns (e.g. "subject", "body", "channel"). Get just enough to be useful — don't over-engineer.
 
-   d. Call \`create_skill\` with the full spec. The HTTP request URL, headers, and body can use \`{{input.NAME}}\` for arguments and \`{{secrets.NAME}}\` for stored secrets. Pick sensible defaults yourself — don't ask the user about HTTP methods or content-types unless they want to.
+   d. Call \`create_skill\` with the full spec. The HTTP request URL, headers, and body can use \`{{input.NAME}}\` for arguments and \`{{secrets.NAME}}\` for stored secrets. Pick sensible defaults yourself — don't ask the user about HTTP methods or content-types unless they want to. **Set \`proxy: true\` in the spec when the target API is known to block browser-direct requests** — this includes Notion, Resend, SendGrid, Mailgun, Postmark, Linear, the Slack Web API, Twilio, and most enterprise SaaS. For browser-friendly APIs (GitHub public, Discord webhooks, ntfy.sh, Tavily, OpenWeather, the Telegram bot API, etc.) omit \`proxy\` or set it to false. If you set \`proxy: true\` and the user is currently running in hosted mode (no proxy available), the skill will return a friendly error telling them to run locally — explain this to the user upfront so they're not surprised.
 
    e. After it's created, tell the user it's ready and offer to test it with sample inputs. The skill is real and callable starting on the very next turn.
 

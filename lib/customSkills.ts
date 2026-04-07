@@ -27,6 +27,14 @@ export type CustomSkillSpec = {
   description: string
   inputs: CustomSkillInput[]
   request: CustomSkillRequest
+  /**
+   * If true, route the request through the local /api/proxy route. Use this for
+   * APIs that block browser-direct requests (Notion, Resend, Linear, Slack Web API).
+   * The proxy is only available when BabyAgent runs locally (bun dev), NOT on
+   * Vercel deployments. When proxy is required but unavailable, the skill fails
+   * with a clear message telling the user to run locally.
+   */
+  proxy?: boolean
   createdAt: string
 }
 
@@ -84,6 +92,9 @@ export function specToMarkdown(spec: CustomSkillSpec): string {
   const inputLines = spec.inputs
     .map(i => `- \`${i.name}\` (${i.type}${i.required ? ', required' : ''}) — ${i.description}`)
     .join('\n')
+  const proxyLine = spec.proxy
+    ? '\n**Proxy required:** Yes — runs through the local proxy route. Only works when BabyAgent is running locally (`bun dev`), not on the hosted deployment.\n'
+    : ''
   return `# ${spec.id}
 
 ${spec.description}
@@ -92,7 +103,7 @@ ${spec.description}
 ${inputLines || '(none)'}
 
 **Request:** \`${spec.request.method}\` \`${spec.request.url}\`
-
+${proxyLine}
 _Created via chat on ${spec.createdAt.slice(0, 10)}._
 `
 }

@@ -1,7 +1,12 @@
 // Generic executor for user-defined custom skills. Walks the spec's request,
 // interpolates {{input.X}} and {{secrets.Y}} templates, runs fetch, returns text.
+//
+// If the spec has `proxy: true` and the local /api/proxy route is available
+// (i.e. running locally, not on Vercel), the request is routed through it.
+// This unlocks APIs that block browser-direct requests (Notion, Resend, etc.).
 
 import type { CustomSkillSpec } from '../customSkills'
+import { fetchMode } from '../mode'
 
 function interpolate(value: any, input: Record<string, any>, secrets: Record<string, string>): any {
   if (typeof value === 'string') {
@@ -43,21 +48,45 @@ export async function runCustomSkill(
     }
   }
 
-  let body: BodyInit | undefined
+  let bodyString: string | undefined
   if (req.body !== undefined && req.method !== 'GET') {
     const interp = interpolate(req.body, input, secrets)
     if (typeof interp === 'string') {
-      body = interp
+      bodyString = interp
     } else {
-      body = JSON.stringify(interp)
+      bodyString = JSON.stringify(interp)
       if (!headers['Content-Type'] && !headers['content-type']) {
         headers['Content-Type'] = 'application/json'
       }
     }
   }
 
+  // Decide direct vs proxy
+  let useProxy = false
+  if (spec.proxy) {
+    const { proxyEnabled } = await fetchMode()
+    if (!proxyEnabled) {
+      return `ERROR: This skill needs the local proxy (because the target API blocks browser requests), but BabyAgent is currently running in hosted mode. Tell the user: to use this skill, clone the repo from https://github.com/Overclock-Accelerator/babyagent and run \`bun dev\` locally. The same skill will then work because their laptop becomes the server.`
+    }
+    useProxy = true
+  }
+
   try {
-    const res = await fetch(url, { method: req.method, headers, body })
+    let res: Response
+    if (useProxy) {
+      res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: req.method,
+          url,
+          headers,
+          body: bodyString,
+        }),
+      })
+    } else {
+      res = await fetch(url, { method: req.method, headers, body: bodyString })
+    }
     const text = await res.text()
     const truncated = text.length > 4000 ? text.slice(0, 4000) + '\n\n…[truncated]' : text
     if (!res.ok) {
@@ -66,8 +95,8 @@ export async function runCustomSkill(
     return truncated || `OK (${res.status}, empty body)`
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    if (message.toLowerCase().includes('cors') || message.toLowerCase().includes('failed to fetch')) {
-      return `ERROR: ${message}\n\nThis is most likely a CORS issue. Many APIs block browser-direct requests. For workshop demos, use webhook-friendly services like Discord webhooks, Slack incoming webhooks, ntfy.sh, or webhook.site — those allow requests directly from the browser.`
+    if (!useProxy && (message.toLowerCase().includes('cors') || message.toLowerCase().includes('failed to fetch'))) {
+      return `ERROR: ${message}\n\nThis is most likely a CORS issue — the target API blocks browser-direct requests. Two fixes: (1) re-create this skill with proxy: true and run BabyAgent locally (bun dev), or (2) use a webhook-friendly alternative like Discord webhooks, Slack incoming webhooks, ntfy.sh, or webhook.site.`
     }
     return `ERROR: ${message}`
   }

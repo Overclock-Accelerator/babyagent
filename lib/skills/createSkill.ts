@@ -60,6 +60,11 @@ export const createSkillSkill = {
           },
           required: ['method', 'url'],
         },
+        proxy: {
+          type: 'boolean',
+          description:
+            'Set to true if the target API blocks browser-direct requests (Notion, Resend, SendGrid, Linear, Slack Web API, Twilio, most enterprise SaaS). The skill will route through the local /api/proxy route, which only works when BabyAgent is running locally (not on Vercel). For browser-friendly APIs (GitHub public, Discord webhooks, ntfy.sh, Tavily, OpenWeather, etc.) leave this false or omit it.',
+        },
       },
       required: ['id', 'name', 'description', 'inputs', 'request'],
     },
@@ -81,6 +86,7 @@ export const createSkillSkill = {
       description: input.description,
       inputs: Array.isArray(input.inputs) ? input.inputs : [],
       request: input.request,
+      proxy: input.proxy === true,
       createdAt: new Date().toISOString(),
     }
     addCustomSkill(spec)
