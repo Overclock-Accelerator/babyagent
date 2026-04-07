@@ -3,11 +3,16 @@ import { writeFileSkill, writeFileMarkdown } from './writeFile'
 import { webFetchSkill, webFetchMarkdown } from './webFetch'
 import { perplexitySkill, perplexityMarkdown } from './perplexity'
 import { rememberSkill, rememberMarkdown } from './remember'
+import { createSkillSkill, createSkillMarkdown } from './createSkill'
+import { setSecretSkill, setSecretMarkdown } from './setSecret'
+import { loadCustomSkills, specToTool, type CustomSkillSpec } from '../customSkills'
+import { runCustomSkill } from './httpRunner'
 
 export type SkillHandler = (input: any, ctx: SkillContext) => Promise<string>
 
 export type SkillContext = {
   perplexityKey?: string
+  secrets: Record<string, string>
 }
 
 export type Skill = {
@@ -18,10 +23,11 @@ export type Skill = {
   tool: Tool
   handler: SkillHandler
   needsKey?: 'perplexity'
-  alwaysOn?: boolean // built-in skills (write_file) that don't need to be installed
+  alwaysOn?: boolean // built-in skills that don't need to be installed
 }
 
-export const ALL_SKILLS: Skill[] = [
+// Built-in skills (the ones that ship with BabyAgent)
+export const BUILTIN_SKILLS: Skill[] = [
   {
     id: 'write_file',
     name: 'Write File',
@@ -29,6 +35,24 @@ export const ALL_SKILLS: Skill[] = [
     markdown: writeFileMarkdown,
     tool: writeFileSkill.tool,
     handler: writeFileSkill.handler,
+    alwaysOn: true,
+  },
+  {
+    id: 'create_skill',
+    name: 'Create Skill',
+    description: 'Define a brand-new skill on the fly from chat answers.',
+    markdown: createSkillMarkdown,
+    tool: createSkillSkill.tool,
+    handler: createSkillSkill.handler,
+    alwaysOn: true,
+  },
+  {
+    id: 'set_secret',
+    name: 'Set Secret',
+    description: "Store an API key or token in the user's browser.",
+    markdown: setSecretMarkdown,
+    tool: setSecretSkill.tool,
+    handler: setSecretSkill.handler,
     alwaysOn: true,
   },
   {
@@ -42,7 +66,7 @@ export const ALL_SKILLS: Skill[] = [
   {
     id: 'perplexity_research',
     name: 'Perplexity Research',
-    description: 'Run a real research query via Perplexity Sonar — gets cited, current answers.',
+    description: 'Run a real research query via Perplexity Sonar.',
     markdown: perplexityMarkdown,
     tool: perplexitySkill.tool,
     handler: perplexitySkill.handler,
@@ -51,21 +75,45 @@ export const ALL_SKILLS: Skill[] = [
   {
     id: 'remember',
     name: 'Remember',
-    description: 'Append a fact to MEMORY.md so BabyAgent remembers it across conversations.',
+    description: 'Append a fact to MEMORY.md.',
     markdown: rememberMarkdown,
     tool: rememberSkill.tool,
     handler: rememberSkill.handler,
   },
 ]
 
-export function getSkill(id: string): Skill | undefined {
-  return ALL_SKILLS.find(s => s.id === id)
+// Convert a custom skill spec into a runnable Skill object.
+function customSpecToSkill(spec: CustomSkillSpec): Skill {
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    markdown: '', // already written to VFS by createSkill handler
+    tool: specToTool(spec),
+    handler: async (input, ctx) => runCustomSkill(spec, input ?? {}, ctx.secrets),
+  }
 }
 
+// Get all skills currently available: built-ins + any custom ones the user has created.
+export function getAllSkills(): Skill[] {
+  const customs = loadCustomSkills().map(customSpecToSkill)
+  return [...BUILTIN_SKILLS, ...customs]
+}
+
+export function getSkill(id: string): Skill | undefined {
+  return getAllSkills().find(s => s.id === id)
+}
+
+// Active skills = built-in always-on + installed built-ins (skills/X.md present) + all custom skills
 export function getActiveSkills(installedIds: string[]): Skill[] {
-  return ALL_SKILLS.filter(s => s.alwaysOn || installedIds.includes(s.id))
+  const customs = loadCustomSkills().map(customSpecToSkill)
+  const builtins = BUILTIN_SKILLS.filter(s => s.alwaysOn || installedIds.includes(s.id))
+  return [...builtins, ...customs]
 }
 
 export function getActiveTools(installedIds: string[]): Tool[] {
   return getActiveSkills(installedIds).map(s => s.tool)
 }
+
+// Backwards-compat alias for any caller still using ALL_SKILLS
+export const ALL_SKILLS = BUILTIN_SKILLS

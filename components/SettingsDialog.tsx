@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Settings as SettingsIcon, Eye, EyeOff } from 'lucide-react'
+import { X, Settings as SettingsIcon, Eye, EyeOff, Trash2, Plus } from 'lucide-react'
 import {
   getAnthropicKey, setAnthropicKey,
   getPerplexityKey, setPerplexityKey,
   getModel, setModel, DEFAULT_MODEL,
 } from '@/lib/anthropic'
+import { loadSecrets, setSecret as saveSecret, deleteSecret } from '@/lib/secrets'
+import { loadCustomSkills, deleteCustomSkill, type CustomSkillSpec } from '@/lib/customSkills'
 
 const MODELS = [
   { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5 (recommended)' },
@@ -16,22 +18,62 @@ const MODELS = [
 
 export default function SettingsDialog() {
   const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<'keys' | 'secrets' | 'skills'>('keys')
   const [aKey, setAKey] = useState('')
   const [pKey, setPKey] = useState('')
   const [model, setMod] = useState(DEFAULT_MODEL)
   const [showA, setShowA] = useState(false)
   const [showP, setShowP] = useState(false)
   const [needsKey, setNeedsKey] = useState(false)
+  const [secrets, setSecretsState] = useState<Record<string, string>>({})
+  const [customs, setCustoms] = useState<CustomSkillSpec[]>([])
+  const [newSecKey, setNewSecKey] = useState('')
+  const [newSecVal, setNewSecVal] = useState('')
+
+  function refreshSecrets() {
+    setSecretsState(loadSecrets())
+    setCustoms(loadCustomSkills())
+  }
 
   useEffect(() => {
     setAKey(getAnthropicKey())
     setPKey(getPerplexityKey())
     setMod(getModel())
+    refreshSecrets()
     if (!getAnthropicKey()) {
       setOpen(true)
       setNeedsKey(true)
     }
+    const refresh = () => refreshSecrets()
+    window.addEventListener('babyagent-secrets-changed', refresh)
+    window.addEventListener('babyagent-custom-skills-changed', refresh)
+    return () => {
+      window.removeEventListener('babyagent-secrets-changed', refresh)
+      window.removeEventListener('babyagent-custom-skills-changed', refresh)
+    }
   }, [])
+
+  function addSecret() {
+    if (!newSecKey.trim() || !newSecVal.trim()) return
+    saveSecret(newSecKey.trim(), newSecVal.trim())
+    setNewSecKey('')
+    setNewSecVal('')
+    refreshSecrets()
+  }
+
+  function removeSecret(key: string) {
+    if (window.confirm(`Delete secret ${key}?`)) {
+      deleteSecret(key)
+      refreshSecrets()
+    }
+  }
+
+  function removeCustomSkill(id: string) {
+    if (window.confirm(`Delete custom skill ${id}? BabyAgent will lose this capability.`)) {
+      deleteCustomSkill(id)
+      refreshSecrets()
+    }
+  }
 
   function save() {
     setAnthropicKey(aKey.trim())
@@ -54,8 +96,8 @@ export default function SettingsDialog() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white border-2 border-swiss-ink shadow-[8px_8px_0_0_rgba(12,12,12,0.25)] w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-stretch border-b-2 border-swiss-ink">
+          <div className="bg-white border-2 border-swiss-ink shadow-[8px_8px_0_0_rgba(12,12,12,0.25)] w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
               <div className="w-2 bg-swiss-blue" aria-hidden />
               <div className="flex flex-1 items-center justify-between px-4 py-3">
                 <div>
@@ -70,7 +112,24 @@ export default function SettingsDialog() {
               </div>
             </div>
 
-            <div className="px-5 py-5 space-y-5">
+            {!needsKey && (
+              <div className="flex border-b-2 border-swiss-ink shrink-0 bg-swiss-beige/20">
+                {(['keys', 'secrets', 'skills'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`flex-1 px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+                      tab === t ? 'bg-white text-swiss-ink border-b-2 border-swiss-orange -mb-[2px]' : 'text-neutral-500 hover:text-swiss-ink'
+                    }`}
+                  >
+                    {t === 'keys' ? 'Provider Keys' : t === 'secrets' ? `Secrets (${Object.keys(secrets).length})` : `Custom Skills (${customs.length})`}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="px-5 py-5 space-y-5 overflow-y-auto scrollbar-thin">
+              {tab === 'keys' && (<>
               {needsKey && (
                 <div className="border-2 border-swiss-orange bg-swiss-orange/10 px-3 py-2.5">
                   <p className="text-xs text-swiss-ink font-medium">
@@ -128,6 +187,108 @@ export default function SettingsDialog() {
                   🔒 Your keys are stored only in your browser&rsquo;s localStorage. They are never sent to any server other than the AI provider you&rsquo;re using.
                 </p>
               </div>
+              </>)}
+
+              {tab === 'secrets' && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="label-poster text-swiss-sage mb-1">What is this?</p>
+                    <p className="text-[11px] text-neutral-600 leading-relaxed">
+                      Secrets are arbitrary key/value pairs (API keys, webhook URLs, tokens) that custom skills can reference. BabyAgent can also create them for you mid-conversation when it builds a new skill — just tell it &ldquo;here&rsquo;s the API key&rdquo; and it will store it.
+                    </p>
+                  </div>
+
+                  {Object.keys(secrets).length === 0 ? (
+                    <p className="text-xs italic text-neutral-400 px-2 py-3 text-center border-2 border-dashed border-neutral-200">
+                      No secrets stored yet.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {Object.entries(secrets).map(([k, v]) => (
+                        <li key={k} className="border-2 border-swiss-ink p-2.5 bg-white">
+                          <div className="flex items-center justify-between gap-2">
+                            <code className="text-xs font-bold text-swiss-ink truncate">{k}</code>
+                            <button
+                              onClick={() => removeSecret(k)}
+                              className="text-neutral-400 hover:text-swiss-crimson p-1"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <code className="block text-[10px] text-neutral-500 mt-1 truncate">
+                            {v.length > 8 ? '••••' + v.slice(-4) : '•••'}
+                          </code>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <div className="border-t-2 border-neutral-200 pt-3">
+                    <p className="label-poster text-neutral-600 mb-1.5">Add manually</p>
+                    <div className="flex gap-2">
+                      <input
+                        value={newSecKey}
+                        onChange={(e) => setNewSecKey(e.target.value)}
+                        placeholder="KEY_NAME"
+                        className="w-32 border-2 border-neutral-300 px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-swiss-orange uppercase"
+                      />
+                      <input
+                        value={newSecVal}
+                        onChange={(e) => setNewSecVal(e.target.value)}
+                        placeholder="value"
+                        type="password"
+                        className="flex-1 border-2 border-neutral-300 px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-swiss-orange"
+                      />
+                      <button
+                        onClick={addSecret}
+                        disabled={!newSecKey.trim() || !newSecVal.trim()}
+                        className="bg-swiss-orange disabled:opacity-30 text-white border-2 border-swiss-ink px-2 py-1.5 shadow-[2px_2px_0_0_rgba(12,12,12,1)]"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tab === 'skills' && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="label-poster text-swiss-sage mb-1">Custom skills</p>
+                    <p className="text-[11px] text-neutral-600 leading-relaxed">
+                      Skills BabyAgent has built for you mid-conversation. Each one is a real callable tool. To create a new one, just tell BabyAgent in chat: <em>&ldquo;create a skill that posts to my Discord webhook.&rdquo;</em>
+                    </p>
+                  </div>
+                  {customs.length === 0 ? (
+                    <p className="text-xs italic text-neutral-400 px-2 py-3 text-center border-2 border-dashed border-neutral-200">
+                      No custom skills yet. Ask BabyAgent to create one.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {customs.map((s) => (
+                        <li key={s.id} className="border-2 border-swiss-ink p-2.5 bg-white">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold uppercase tracking-wider text-swiss-ink truncate">{s.name}</p>
+                              <code className="block text-[10px] text-swiss-blue mt-0.5">{s.id}</code>
+                              <p className="text-[11px] text-neutral-600 mt-1 leading-snug">{s.description}</p>
+                              <p className="text-[10px] text-neutral-400 mt-1 font-mono">{s.request.method} {s.request.url.length > 50 ? s.request.url.slice(0, 50) + '…' : s.request.url}</p>
+                            </div>
+                            <button
+                              onClick={() => removeCustomSkill(s.id)}
+                              className="text-neutral-400 hover:text-swiss-crimson p-1"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 px-5 py-3 border-t-2 border-swiss-ink bg-swiss-beige/30">

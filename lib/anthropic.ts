@@ -5,6 +5,7 @@ import type { Message, MessageParam, Tool, ToolUseBlock } from '@anthropic-ai/sd
 import { getActiveTools, getSkill, type SkillContext } from './skills'
 import { assembleSystemPrompt, getInstalledSkillIds } from './prompt'
 import { loadVFS } from './vfs'
+import { loadSecrets } from './secrets'
 
 const ANTHROPIC_KEY_STORAGE = 'babyagent_anthropic_key'
 const PERPLEXITY_KEY_STORAGE = 'babyagent_perplexity_key'
@@ -74,6 +75,7 @@ export async function runTurn(
 
   const skillCtx: SkillContext = {
     perplexityKey: getPerplexityKey(),
+    secrets: loadSecrets(),
   }
 
   // Convert chat history to Anthropic messages

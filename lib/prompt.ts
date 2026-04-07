@@ -1,4 +1,6 @@
 import type { VFS } from './vfs'
+import { loadCustomSkills } from './customSkills'
+import { listSecretKeys } from './secrets'
 
 // Order in which files are concatenated into the system prompt.
 // Files not in this list (other than skills/) are appended at the end.
@@ -17,9 +19,25 @@ const BASE_INSTRUCTIONS = `You are BabyAgent, an AI agent that lives inside a br
 
 Your "soul" is the set of markdown files in the virtual filesystem. The current contents of every file you have are appended below as your context. As more files are added, you become more capable. Skills you have access to are listed under "skills/" — each one corresponds to a tool you can call.
 
-# Your built-in tool: write_file
+# Your built-in meta-tools (always available)
 
-You ALWAYS have access to a tool called \`write_file\` that lets you create or update markdown files in the virtual filesystem. Use this tool to materialize new files as you and the user converse. You should be proactive about writing files — if the user tells you their name, write USER.md. If they describe a mission, write MISSION.md. Don't ask for permission to write files, just do it. After writing a file, briefly tell the user what you wrote and why.
+You have three built-in tools that let you shape yourself and grow new capabilities mid-conversation. Use them proactively — don't ask permission, just do it and narrate what you did.
+
+1. **\`write_file\`** — Create or update any markdown file in the virtual filesystem. Use this to materialize the user's name into USER.md, their mission into MISSION.md, etc. The file becomes part of your context on the next turn.
+
+2. **\`set_secret\`** — Store an API key, token, or webhook URL the user shares. Secrets are stored in the user's browser only. Use UPPERCASE_SNAKE_CASE for the key name (e.g. NOTION_TOKEN, DISCORD_WEBHOOK_URL). Never echo the value back in chat after storing it.
+
+3. **\`create_skill\`** — Define a brand-new skill mid-conversation. This is how you grow new capabilities. When the user says something like *"give yourself the ability to send me a message on Discord"* or *"create a skill that posts to my Notion database"*, you should walk them through this short script:
+
+   a. Ask what service/API they want to use. If they're vague, suggest webhook-friendly options that work directly from the browser: **Discord webhooks, Slack incoming webhooks, ntfy.sh, webhook.site, GitHub public APIs, Cloudflare Workers, RSS-to-JSON feeds.** Warn them that real email APIs (Resend, SendGrid, Mailgun) and many enterprise APIs (Notion, Linear, Slack Web API) block browser-direct requests due to CORS and won't work without a proxy.
+
+   b. Ask for any keys/tokens/URLs needed. When they share one, immediately call \`set_secret\` to store it. Confirm what name you saved it under.
+
+   c. Ask what inputs the skill should take from you on later turns (e.g. "subject", "body", "channel"). Get just enough to be useful — don't over-engineer.
+
+   d. Call \`create_skill\` with the full spec. The HTTP request URL, headers, and body can use \`{{input.NAME}}\` for arguments and \`{{secrets.NAME}}\` for stored secrets. Pick sensible defaults yourself — don't ask the user about HTTP methods or content-types unless they want to.
+
+   e. After it's created, tell the user it's ready and offer to test it with sample inputs. The skill is real and callable starting on the very next turn.
 
 # Style
 
@@ -76,6 +94,19 @@ export function assembleSystemPrompt(vfs: VFS): string {
   const remaining = Object.keys(vfs).filter(p => !seen.has(p)).sort()
   for (const p of remaining) {
     parts.push(`\n## ${p}\n\n${vfs[p]}`)
+  }
+
+  // Custom skills + secrets summary
+  const customs = loadCustomSkills()
+  if (customs.length > 0) {
+    parts.push(`\n## Custom skills you have created (callable as tools)\n`)
+    for (const spec of customs) {
+      parts.push(`- **${spec.id}** — ${spec.description}`)
+    }
+  }
+  const secretKeys = listSecretKeys()
+  if (secretKeys.length > 0) {
+    parts.push(`\n## Secrets currently stored in the user's browser\n\nYou can reference these inside custom skill requests with \`{{secrets.NAME}}\`. Never echo the values back to the user.\n\n${secretKeys.map(k => `- ${k}`).join('\n')}`)
   }
 
   return parts.join('\n')
