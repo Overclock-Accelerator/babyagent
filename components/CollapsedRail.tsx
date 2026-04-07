@@ -17,8 +17,8 @@ const ACCENT_BG: Record<Props['accent'], string> = {
 
 export default function CollapsedRail({ label, accent, icon, onExpand }: Props) {
   return (
-    <div className="basis-[44px] shrink-0 min-h-0 flex flex-col">
-      <div className="flex flex-col h-full min-h-0 bg-white border-2 border-swiss-ink m-2 sm:m-3 shadow-[6px_6px_0_0_rgba(12,12,12,0.12)]">
+    <div className="basis-[64px] shrink-0 min-h-0 flex flex-col">
+      <div className="flex flex-col h-full min-h-0 bg-white border-2 border-swiss-ink my-2 sm:my-3 mx-1 shadow-[6px_6px_0_0_rgba(12,12,12,0.12)]">
         {/* Accent stripe at the top to match expanded panels */}
         <div className={`h-2 ${ACCENT_BG[accent]} border-b-2 border-swiss-ink shrink-0`} aria-hidden />
 
