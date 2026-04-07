@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --color-swiss-paper: #f4f3ef;
+  --color-swiss-ink: #0c0c0c;
+  --color-swiss-orange: #e85d04;
+  --color-swiss-blue: #3d8fd1;
+  --color-swiss-beige: #d4cfc5;
+  --color-swiss-crimson: #b42318;
+  --color-swiss-sage: #3d5c4e;
+}
+
+:root {
+  --swiss-paper: #f4f3ef;
+  --swiss-ink: #0c0c0c;
+  --swiss-orange: #e85d04;
+  --swiss-blue: #3d8fd1;
+  --swiss-beige: #d4cfc5;
+  --swiss-crimson: #b42318;
+  --swiss-sage: #3d5c4e;
+}
+
+html, body {
+  background-color: var(--swiss-paper);
+  color: var(--swiss-ink);
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+.label-poster {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.bg-swiss-dots {
+  background-color: #fafaf8;
+  background-image: radial-gradient(circle, rgba(180, 35, 24, 0.12) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #c4bfb5; border-radius: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+
+/* CodeMirror tweaks */
+.cm-editor {
+  height: 100%;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+}
+.cm-editor.cm-focused { outline: none !important; }
+.cm-scroller { font-family: inherit !important; }
+.cm-content { padding: 16px 0; }
+.cm-gutters { background: #f4f3ef !important; border-right: 1px solid #e5e3dd !important; color: #a8a29e !important; }
+.cm-activeLine, .cm-activeLineGutter { background: rgba(232, 93, 4, 0.04) !important; }
+
+@keyframes ba-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.ba-bounce { animation: ba-bounce 0.9s ease-in-out infinite; }
