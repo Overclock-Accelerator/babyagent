@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen, RefreshCw } from 'lucide-react'
-import { buildTree, loadVFS, resetVFS, type TreeNode } from '@/lib/vfs'
+import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from 'lucide-react'
+import { buildTree, loadVFS, type TreeNode } from '@/lib/vfs'
 
 interface Props {
   selected: string | null
@@ -27,29 +27,15 @@ export default function FileTree({ selected, onSelect, onOpen }: Props) {
     setOpenDirs(next)
   }
 
-  function handleReset() {
-    if (window.confirm('Reset BabyAgent to a blank slate? This wipes all files and starts over.')) {
-      resetVFS()
-      window.location.reload()
-    }
-  }
-
   return (
     <div className="flex flex-col h-full min-h-0 bg-white border-2 border-swiss-ink m-2 sm:m-3 shadow-[6px_6px_0_0_rgba(12,12,12,0.12)]">
       <div className="flex items-stretch border-b-2 border-swiss-ink shrink-0">
         <div className="w-2 bg-swiss-orange shrink-0" aria-hidden />
-        <div className="flex flex-1 items-center justify-between px-4 py-3 min-w-0">
+        <div className="flex flex-1 items-center px-4 py-3 min-w-0">
           <div>
             <p className="label-poster text-swiss-sage">Filesystem</p>
             <p className="text-sm font-bold uppercase tracking-wide text-swiss-ink">BabyAgent&rsquo;s Soul</p>
           </div>
-          <button
-            onClick={handleReset}
-            title="Reset BabyAgent to blank slate"
-            className="text-neutral-500 hover:text-swiss-crimson border-2 border-transparent hover:border-swiss-ink p-1.5 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-3 min-h-0 scrollbar-thin font-mono text-[13px]">

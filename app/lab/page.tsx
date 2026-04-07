@@ -7,8 +7,8 @@ import Editor from '@/components/Editor'
 import Chat from '@/components/Chat'
 import JourneyDialog from '@/components/JourneyPanel'
 import SettingsDialog from '@/components/SettingsDialog'
-import { LogOut, FolderTree, FileCode2, Compass } from 'lucide-react'
-import { loadVFS, saveVFS } from '@/lib/vfs'
+import { LogOut, FolderTree, FileCode2, Compass, RotateCcw } from 'lucide-react'
+import { loadVFS, saveVFS, resetVFS } from '@/lib/vfs'
 import { SEED_FILES, FIRST_GREETING } from '@/lib/seed'
 
 export default function LabPage() {
@@ -43,6 +43,14 @@ export default function LabPage() {
   function handleOpenFile(path: string) {
     setSelected(path)
     setEditorOpen(true)
+  }
+
+  function handleRestart() {
+    if (window.confirm('Restart BabyAgent from a blank slate? This wipes all files and chat history.')) {
+      resetVFS()
+      localStorage.removeItem('babyagent_chat_v1')
+      window.location.reload()
+    }
   }
 
   if (!authed) return null
@@ -81,6 +89,14 @@ export default function LabPage() {
               label="Journey"
             />
             <SettingsDialog />
+            <button
+              onClick={handleRestart}
+              title="Restart BabyAgent from blank slate"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-swiss-crimson hover:text-white hover:bg-swiss-crimson border-2 border-swiss-crimson px-3 py-2 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Restart
+            </button>
             <button
               onClick={handleLogout}
               title="Sign out"
