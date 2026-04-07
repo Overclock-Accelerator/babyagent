@@ -120,6 +120,117 @@ When running locally the mode badge in the top nav turns green ("Local · Proxy 
 
 ---
 
+## Things to try — prompts that expand BabyAgent's capabilities
+
+Once you've finished the 7-step journey, the most fun part of BabyAgent is **giving it new capabilities by asking for them in plain English**. Below is a curated menu of prompts that work end-to-end with no proxy (everything below is browser-friendly and CORS-clean unless explicitly noted).
+
+### Easy starters — no API keys needed
+
+> "Look up what's currently on the front page of Hacker News and tell me which 3 stories I should read."
+
+BabyAgent will install `web_fetch` if it isn't installed yet, then call the Hacker News Algolia search or front page. Or it'll create a custom skill that hits the [Firebase HN API](https://github.com/HackerNews/API).
+
+> "Summarize this YouTube video for me: https://www.youtube.com/watch?v=..."
+
+BabyAgent will use `web_fetch` against `r.jina.ai`, which renders YouTube pages including the auto-generated transcript. You can then ask follow-up questions about the video.
+
+> "Read this GitHub repo and answer questions about its architecture: https://github.com/Overclock-Accelerator/babyagent"
+
+BabyAgent will create a skill that hits `api.github.com` (CORS-friendly for public repos) to list directory contents and read files. Then it can answer questions about any code in the repo.
+
+> "Create a skill that tells me the weather in any city."
+
+BabyAgent will use [Open-Meteo](https://open-meteo.com) (no key, CORS-friendly). Geocode the city name, fetch the forecast, return human-readable weather.
+
+> "What's the current price of Bitcoin and Ethereum?"
+
+CoinGecko's free API is browser-friendly and needs no key. BabyAgent will create a `crypto_prices` skill once and use it forever.
+
+> "Summarize the latest 5 papers from arXiv on diffusion models."
+
+The arXiv API is fully CORS-friendly. BabyAgent will create a `search_arxiv` skill that takes a query and returns titles + abstracts.
+
+### Notification & messaging skills (the room favorites)
+
+> "Give yourself the ability to send me a notification on my phone."
+
+BabyAgent will suggest [ntfy.sh](https://ntfy.sh) — no signup, no key, just pick a topic name and install the ntfy mobile app. The skill becomes `send_phone_notification` with `title` and `message` inputs. Visceral demo: phone buzzes within 3 seconds.
+
+> "Build a skill so you can post messages to my Discord server."
+
+BabyAgent will walk you through creating a Discord webhook in your server settings, store the URL as a secret, and define a `post_to_discord` skill. Browser-friendly, instant feedback in the room.
+
+> "Set up a Slack channel skill so you can ping me in #notifications."
+
+Same pattern — Slack incoming webhooks are CORS-friendly. Create one in your Slack workspace, share the URL, BabyAgent stores it and builds the skill.
+
+> "Make a skill that lets you send me a Telegram message."
+
+The Telegram Bot API is fully CORS-friendly. Create a bot via [@BotFather](https://t.me/botfather), share the token + your chat id, and BabyAgent will define a `send_telegram` skill that actually messages your phone.
+
+### Research and search skills (with free API keys)
+
+> "Give yourself research skills using Tavily."
+
+[Tavily](https://tavily.com) has a free tier and is CORS-friendly. BabyAgent will ask for your API key, store it, and define a `tavily_search` skill — your agent now has real web search.
+
+> "Build a skill that does fast inference using Groq for sub-tasks."
+
+[Groq](https://console.groq.com) offers free fast inference on Llama, Mixtral, and others. BabyAgent will create a skill that calls Groq's OpenAI-compatible API. Now you have an agent that can dispatch sub-questions to a different model.
+
+### Personal data skills
+
+> "Give yourself the ability to read my Strava activity from the last week."
+
+The Strava API needs an OAuth token (which you can grab from their developer portal). It's CORS-friendly. BabyAgent will store the token and build a skill that calls `/athlete/activities`.
+
+> "Make a skill that posts a status to my Mastodon account."
+
+Mastodon's API is fully CORS-friendly. Get an access token from your instance's developer settings, share it, and BabyAgent builds a `post_mastodon_status` skill.
+
+### Composition prompts — chain your skills together
+
+Once you have a few skills installed, the magic is asking BabyAgent to **combine them**:
+
+> "Every time I ask you about a new topic, search Tavily for the latest, summarize the top result, and post the summary to my Discord server."
+
+> "Read the README from this GitHub repo, summarize it in one paragraph, and ping me on my phone with the result."
+
+> "Find the top 3 papers on arXiv about [topic], summarize each in two sentences, and save them to my MEMORY.md so you remember them."
+
+The third one is especially cool because it composes a custom skill (`search_arxiv`) with a built-in (`write_file`) — BabyAgent updates its own memory based on what it finds.
+
+### Things that need local mode (`bun dev`) to work
+
+These all need `proxy: true` because the target APIs block browser-direct requests:
+
+> "Give yourself the ability to send me an email when something important happens."
+
+[Resend](https://resend.com) is the easiest path — get an API key, share it, BabyAgent builds a `send_email` skill with `proxy: true`. Only works when you're running `bun dev` locally.
+
+> "Build a skill that creates a new page in my Notion database."
+
+Notion's API blocks browser requests. With `proxy: true` on local mode it works perfectly — get an internal integration token from [notion.so/my-integrations](https://notion.so/my-integrations), share it + the database id, BabyAgent does the rest.
+
+> "Make a skill that creates an issue in my Linear workspace."
+
+Same story — Linear blocks browser direct, works fine via local proxy.
+
+### Open-ended challenges
+
+A few "design problems" for the room:
+
+1. **Build a daily standup bot.** Compose: `web_fetch` (read your team's GitHub repo activity) + `tavily_search` (catch up on industry news) + `post_to_discord` (post the digest). Then ask BabyAgent to do it for you on demand.
+2. **Build a research assistant.** `tavily_search` + `web_fetch` + `write_file` (save findings to a `research/` folder). Now your agent can do background research and persist its findings into its own memory.
+3. **Build a personal CRM.** Notion create + Notion query (local mode) + `write_file` (cache the latest snapshot in MEMORY.md). Ask your agent things like "remind me what I last talked to Sarah about."
+4. **Build a self-improving agent.** Use `write_file` to have BabyAgent edit its own `MISSION.md` based on patterns it notices in your conversations. Genuinely weird and educational.
+
+### A note on CORS
+
+When you ask BabyAgent to create a skill, it'll try to figure out whether the target API is browser-friendly or proxy-required. If it gets it wrong and your skill returns a CORS error, just tell it: *"that didn't work, set proxy: true on the skill."* It'll update the spec and try again. (And remember: proxy mode only works locally.)
+
+---
+
 ## Architecture in one page
 
 ```
